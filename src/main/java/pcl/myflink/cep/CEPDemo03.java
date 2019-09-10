@@ -1,4 +1,4 @@
-package pcl.myflink;
+package pcl.myflink.cep;
 
 
 import org.apache.flink.api.common.typeinfo.Types;
