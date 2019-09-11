@@ -1,4 +1,4 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -15,6 +15,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -37,7 +38,8 @@ import org.apache.flink.types.Row;
 public class CopyOfTickerDown {
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		
 		Properties properties = new Properties();

@@ -1,9 +1,10 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -21,8 +22,9 @@ public class TickerDownNew {
 
 		public static void main(String[] arg) throws Exception {
 
-	        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-	        StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+			StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+			EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+			StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
 
 	        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 

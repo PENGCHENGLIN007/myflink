@@ -1,4 +1,4 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 import java.sql.Timestamp;
 

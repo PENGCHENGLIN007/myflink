@@ -1,4 +1,4 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
@@ -25,7 +26,8 @@ public class FlinkParser {
 		String result = "true";
 		try{
 			StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-	        StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+			EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+			StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
 	        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 	        
 	        ArrayList<Integer> data = new ArrayList<>();

@@ -1,10 +1,11 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.core.fs.FileSystem.WriteMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.TableEnvironment;
@@ -18,26 +19,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 创建topic ./bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic topic-cep-test03
+ * 创建topic ./bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic topic-cep-test01
 * 
 * @Description: TODO 
 * @author : pengchenglin
 * @date : Aug 14, 2019 2:58:21 PM 
 * @version V1.0
  */
-public class CEPDemo03 {
+public class CEPDemo {
 	protected static final Logger logger = LoggerFactory.getLogger("CEPDemo");
 
 	public static void main(String[] arg) throws Exception {
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
 
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         tableEnv.connect(new Kafka()
                     .version("0.10")
-                    .topic("topic-cep-test03")
+                    .topic("topic-cep-test01")
                     //.property("group.id", "testGroup")
                     //.property("zookeeper.connect","")
                     //.startFromLatest()    
@@ -60,40 +62,47 @@ public class CEPDemo03 {
             //Adds a field with the field name and the type string. Required.
             //This method can be called multiple times. 
             //The call order of this method defines also the order of the fields in a row.
+                    .field("sessionId", Types.STRING).from("sessionId")
             //Field names are matched by the exact name by default (case sensitive).
-                    .field("symbol", Types.STRING).from("symbol")
-                    .field("price", Types.INT).from("price")
-                    .field("tax", Types.INT).from("tax")
+                    .field("fromUid", Types.STRING).from("fromUid")
+                    .field("toUid", Types.STRING).from("toUid")
+                    .field("chatType", Types.STRING).from("chatType")
+                    .field("type", Types.STRING).from("type")
+                    .field("msgId", Types.STRING).from("msgId")
+                    .field("msg", Types.STRING).from("msg")
+                  //.field("timestampSend", Types.SQL_TIMESTAMP)
                     .field("rowtime", Types.SQL_TIMESTAMP)
                     .rowtime(new Rowtime()
-                            .timestampsFromField("eventtime")
-                            .watermarksPeriodicBounded(500)
+                    //*设置内置时间戳提取程序，该提取程序可转换现有的[[Long]]或
+                    //*将[[Types.SQL_TIMESTAMP]]字段输入rowtime属性。
+                            .timestampsFromField("timestampSend")
+                            .watermarksPeriodicBounded(1000)
                     )
-                   // .field("proctime", Types.SQL_TIMESTAMP).proctime()
-            ).inAppendMode().registerTableSource("Ticker");
+                    //.field("proctime", Types.SQL_TIMESTAMP).proctime()
+            ).inAppendMode().registerTableSource("myTable");
 
         Table tb2 = tableEnv.sqlQuery(
-        		" SELECT * "+
-        				" FROM Ticker "+
-        				" MATCH_RECOGNIZE ( "+
-        				"     PARTITION BY symbol "+
-        				"     ORDER BY rowtime "+
-        				"     MEASURES "+
-        				"         START_ROW.rowtime AS start_tstamp, "+
-        				"         LAST(PRICE_DOWN.rowtime) AS bottom_tstamp, "+
-        				"         LAST(PRICE_UP.rowtime) AS end_tstamp "+
-        				"     ONE ROW PER MATCH "+
-        				"     AFTER MATCH SKIP TO LAST PRICE_UP "+
-        				"     PATTERN (START_ROW PRICE_DOWN+ PRICE_UP) "+
-        				"     DEFINE "+
-        				"         PRICE_DOWN AS "+
-        				"             (LAST(PRICE_DOWN.price, 1) IS NULL AND PRICE_DOWN.price < START_ROW.price) OR "+
-        				"                 PRICE_DOWN.price < LAST(PRICE_DOWN.price, 1), "+
-        				"         PRICE_UP AS "+
-        				"             PRICE_UP.price > LAST(PRICE_DOWN.price, 1) "+
-        				"     ) MR "+
-        				//" GROUP BY TUMBLE(MR.rowtime, INTERVAL '10' SECOND) "
-        				""
+                "SELECT " +
+                        " answerTime, customer_event_time, empUid, noreply_counts, total_talk " +
+                        " FROM myTable" +
+                        " MATCH_RECOGNIZE ( " +
+                        " PARTITION BY sessionId " +
+                        " ORDER BY rowtime " +
+                        " MEASURES " +
+                        " e2.rowtime as answerTime, "+
+                        " LAST(e1.rowtime) as customer_event_time, " +
+                        " e2.fromUid as empUid, " +
+                        " 1 as noreply_counts, " +
+                        " e1.rowtime as askTime," +                      
+                        " 1 as total_talk " +          
+                        " ONE ROW PER MATCH " +
+                        " AFTER MATCH SKIP TO LAST e2 " +
+                        " PATTERN (e1 e2) " +
+                        " DEFINE " +
+                        " e1 as e1.type = 'yonghu', " +
+                        " e2 as e2.type = 'guanjia' " +
+                        " ) "
+                        //+ "GROUP BY TUMBLE(timestampSend, INTERVAL '10' SECOND)"
                 );
 
            DataStream<Row> appendStream =tableEnv.toAppendStream(tb2, Row.class);
@@ -101,14 +110,14 @@ public class CEPDemo03 {
             System.out.println("schema is:");
             tb2.printSchema();
 
-        appendStream.writeAsText("/usr/local/02", WriteMode.OVERWRITE);
+        appendStream.writeAsText("/usr/local/127whk", WriteMode.OVERWRITE);
 
         logger.info("stream end");  
 
-        Table tb3 = tableEnv.sqlQuery("select  *  from Ticker");
+        Table tb3 = tableEnv.sqlQuery("select  sessionId, type  from myTable");
         DataStream<Row> temp =tableEnv.toAppendStream(tb3, Row.class);
         tb3.printSchema();
-        temp.writeAsText("/usr/local/022", WriteMode.OVERWRITE);
+        temp.writeAsText("/usr/local/127whk2", WriteMode.OVERWRITE);
 
         env.execute("msg test");    
 

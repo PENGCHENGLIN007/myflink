@@ -1,0 +1,87 @@
+
+options {
+    STATIC = false;
+    IGNORE_CASE = true;
+    UNICODE_INPUT = true;
+}
+
+PARSER_BEGIN(CalcParser)
+package pcl.myflink.sqlparser;
+import java.io.StringReader;  
+import java.io.Reader;  
+   
+public class CalcParser{  
+    public CalcParser(String expr){  
+        this((Reader)(new StringReader(expr)));  
+    }  
+    public static void main(String[] args){  
+        try{  
+            CalcParser parser = new CalcParser(args[0]);  
+            System.out.println(parser.expr());  
+        }catch(Exception e){  
+            System.out.println("error : "+e.getMessage());  
+        }  
+    }  
+}  
+PARSER_END(CalcParser)
+
+
+
+double expr():  
+{  
+    double temp = 0;  
+    double first, second;  
+}  
+{  
+    //你可以在非终结符前插入变量，等号等，在其后可以插入普通的java代码  
+    //插入代码后看起来可能不够清晰，可以参看上边的形式定义  
+    first=term(){temp = first;}  
+    (<ADD>second=term(){temp = first + second;}|  
+     <SUB>second=term(){temp = first - second;})*  
+    {return temp;}//最后，应当返回某值  
+}  
+   
+double term():  
+{  
+    double temp = 0;  
+    double first, second;  
+}  
+{  
+    first=factor(){temp = first;}  
+    (<MUL>second=factor(){temp = first * second;}|  
+     <DIV>second=factor(){temp = first / second;})*  
+    {return temp;}  
+}  
+   
+double factor():  
+{  
+    double temp = 0;  
+    Token token;  
+}  
+{      
+    token=<NUMBER>{  
+        return Double.parseDouble(token.image);  
+    } | <LPAREN> temp=expr() <RPAREN>{  
+        return temp;  
+    }  
+}
+
+
+TOKEN:{  
+      <ADD : "+">  
+    | <SUB : "-">  
+    | <MUL : "*">  
+    | <DIV : "/">  
+    | <LPAREN : "(">  
+    | <RPAREN : ")">  
+    | <NUMBER :   
+          ["0"-"9"] (["0"-"9"])*   
+        | (["0"-"9"])+ "." (["0"-"9"])* (<EXPONENT>)?  
+        | "." (["0"-"9"])+ (<EXPONENT>)?  
+        | (["0"-"9"])+ <EXPONENT> >  
+    | <#EXPONENT: ["e","E"] (["+","-"])? (["0"-"9"])+ >  
+}  
+
+SKIP:{  
+    " " | "\t" | "\r" | "\n"  
+}  

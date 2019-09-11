@@ -1,8 +1,9 @@
-package pcl.myflink.cep;
+package pcl.myflink.sqlparser.cep;
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.Json;
@@ -16,8 +17,9 @@ public class CEPDemo02 {
 				.getExecutionEnvironment();
 		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		env.setParallelism(1);
-		StreamTableEnvironment tEnv = TableEnvironment.getTableEnvironment(env);
-		tEnv.connect(
+		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
+		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
+		tableEnv.connect(
 				new Kafka()
 						.version("0.10")
 						// "0.8", "0.9", "0.10", "0.11", and "universal"
@@ -37,7 +39,7 @@ public class CEPDemo02 {
 								.field("number", Types.INT)).inAppendMode()
 				.registerTableSource("source");
 		
-		tEnv.connect(
+		tableEnv.connect(
 				new Kafka()
 						.version("0.10")
 						// "0.8", "0.9", "0.10", "0.11", and "universal"
@@ -54,7 +56,7 @@ public class CEPDemo02 {
 								.field("total", Types.INT)
 								.field("time", Types.SQL_TIMESTAMP))
 				.registerTableSink("sink");
-		tEnv.sqlUpdate("insert into sink"
+		tableEnv.sqlUpdate("insert into sink"
 				+ " select fruit,sum(number),TUMBLE_END(rowtime, INTERVAL '5' SECOND) "
 				+ "from source group by fruit,TUMBLE(rowtime, INTERVAL '5' SECOND)");
 		env.execute();

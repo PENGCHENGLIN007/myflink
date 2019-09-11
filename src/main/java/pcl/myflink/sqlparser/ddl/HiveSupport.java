@@ -1,4 +1,4 @@
-package pcl.myflink.ddl;
+package pcl.myflink.sqlparser.ddl;
 
 import java.util.Arrays;
 
