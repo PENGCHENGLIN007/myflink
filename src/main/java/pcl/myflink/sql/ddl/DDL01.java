@@ -1,4 +1,4 @@
-package pcl.myflink.sqlparser.ddl;
+package pcl.myflink.sql.ddl;
 
 import java.util.Arrays;
 
@@ -11,21 +11,21 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KafkaSupport {
-	protected static final Logger logger = LoggerFactory.getLogger(KafkaSupport.class);
+public class DDL01 {
+	protected static final Logger logger = LoggerFactory.getLogger(DDL01.class);
 
 	public static void main(String[] args) throws Exception {
 		
 		
-		String tablename = "orders";
-		String filename = "localfile.csv";
+		String tablename = args[0];
+		String filename = args[1];
 		
 		// TODO Auto-generated method stub
 /*		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		//EnvironmentSettings settings = EnvironmentSettings.newInstance().useBlinkPlanner().inBatchMode().build();
 		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);*/
 		//blink environment
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+/*	*/	StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
 		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
 		
@@ -89,7 +89,7 @@ public class KafkaSupport {
 				+"   'connector.properties.2.key' = 'group.id', "
 				+"   'connector.properties.2.value' = 'group-pcl-ddl', "
 				+"   'connector.startup-mode' = 'earliest-offset',  "
-				//+"   'kafka.end-offset='none',  " 
+				//+"   'kafka.end-offset='none',  "
 				
 				+"   'format.type' = 'csv', "
 				+"   'format.fields.0.name' = 'userid', "
@@ -109,13 +109,19 @@ public class KafkaSupport {
 		logger.info("afterdatabases="+Arrays.toString(afterdatabases));
 		logger.info("aftertables="+Arrays.toString(aftertables));
 		
+		//tableEnv.sqlUpdate("drop table Orders1");
 		String[] aaftertables = tableEnv.listTables();
 		logger.info("aaftertables="+Arrays.toString(aaftertables));
 		
 		Table result = tableEnv.sqlQuery(
-		  "SELECT product, amount FROM Orders1 WHERE product LIKE '%glasses%'");
-		DataStream<Row> appendStream2 =tableEnv.toAppendStream(result, Row.class);
-		appendStream2.print();
+		  "SELECT product, amount FROM "+tablename+" WHERE product LIKE '%glasses%'");
+		DataStream<Row> appendStream =tableEnv.toAppendStream(result, Row.class);
+		appendStream.print();
+		
+		Table result1 = tableEnv.sqlQuery(
+				  "SELECT product, amount FROM Orders1 WHERE product LIKE '%glasses%'");
+		DataStream<Row> appendStream1 =tableEnv.toAppendStream(result1, Row.class);
+		appendStream1.print();
 		env.execute("DDL01"); 
 
 		// SQL update with a registered table

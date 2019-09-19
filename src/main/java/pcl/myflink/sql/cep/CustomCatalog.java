@@ -1,4 +1,4 @@
-package pcl.myflink.sqlparser.ddl;
+package pcl.myflink.sql.cep;
 
 import java.util.List;
 

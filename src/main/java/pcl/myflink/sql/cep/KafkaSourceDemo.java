@@ -1,4 +1,4 @@
-package pcl.myflink.sqlparser.cep;
+package pcl.myflink.sql.cep;
 
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -34,7 +34,7 @@ import org.apache.flink.types.Row;
  *		group.id 消费者群组的ID
  *
  */
-public class kafkaoutput {
+public class KafkaSourceDemo {
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
@@ -46,15 +46,13 @@ public class kafkaoutput {
 		//properties.setProperty("zookeeper.connect", "172.16.44.28:2180,172.16.44.29:2180,172.16.44.30:2180");
 		//properties.setProperty("group.id", "pcl01");
 		
-		FlinkKafkaConsumer010<String> consumer = new FlinkKafkaConsumer010<>("cep-testoutput",
-				new SimpleStringSchema(Charset.forName("utf8")),properties);
+		FlinkKafkaConsumer010<String> consumer = new FlinkKafkaConsumer010<>("topic-cep-test04",new SimpleStringSchema(Charset.forName("utf8")),properties);
 		consumer.setStartFromEarliest();//从最早记录开始
 		//consumer.setStartFromLatest();//从最新记录开始
 		DataStream<String> stream = env.addSource(consumer);
 		stream.print();
 		//TypeInformation[] types ={Types.STRING,Types.LONG,Types.INT,Types.INT};
-		@SuppressWarnings("rawtypes")
-		TypeInformation[] types ={Types.STRING,Types.INT,Types.INT,Types.SQL_TIMESTAMP};
+		TypeInformation[] types ={Types.STRING,Types.SQL_TIMESTAMP,Types.INT,Types.INT};
 		DataStream<Row> streamaa = stream.map(new MapFunction<String, Row>() {
 			/**
 			 * 
@@ -72,15 +70,15 @@ public class kafkaoutput {
 						row.setField(i,(String)str[i]);
 						break;
 					}
-
-					case 1:
-					case 2:{
-						row.setField(i,Integer.parseInt(str[i]));
+					case 1:{
+						String time = str[i].substring(1,str[i].length()-1);
+						Timestamp tms = Timestamp.valueOf(time);
+						row.setField(i,tms);
 						break;
 					}
+					case 2:
 					case 3:{
-						Timestamp tms = Timestamp.valueOf(str[i]);
-						row.setField(i,tms);
+						row.setField(i,Integer.parseInt(str[i]));
 						break;
 					}
 					}
@@ -89,11 +87,34 @@ public class kafkaoutput {
 			}
 	        }).returns(new RowTypeInfo(types) );
 		DataStream<Row> ithTimestampsAndWatermarks = streamaa
-                .assignTimestampsAndWatermarks(new WatermarkOutput());
-			tableEnv.registerDataStream("Ticker",ithTimestampsAndWatermarks,
-					"symbol,tax,price,eventtime,rowtime.rowtime");
+                .assignTimestampsAndWatermarks(new FirstTandW());
+			tableEnv.registerDataStream("Ticker",ithTimestampsAndWatermarks, "symbol,eventtime,price,tax,rowtime.rowtime");
 			//tableEnv.registerDataStream("Ticker",streamaa, "symbol,eventtime,price,tax");
 			//tableEnv.registerDataStream("Ticker",streamaa, "symbol,eventtime,price,tax");
+			/*Table tb2 = tableEnv.sqlQuery(
+	        		" SELECT * "+
+	        				" FROM Ticker "+
+	        				" MATCH_RECOGNIZE ( "+
+	        				"     PARTITION BY symbol "+
+	        				"     ORDER BY rowtime "+
+	        				"     MEASURES "+
+	        				"         START_ROW.eventtime AS start_tstamp, "+
+	        				"         LAST(PRICE_DOWN.eventtime) AS bottom_tstamp, "+
+	        				"         LAST(PRICE_UP.eventtime) AS end_tstamp "+
+	        				"     ONE ROW PER MATCH "+
+	        				"     AFTER MATCH SKIP TO LAST PRICE_UP "+
+	        				"     PATTERN (START_ROW PRICE_DOWN+ PRICE_UP)  "+ 
+	        				"     WITHIN INTERVAL '1' minute  "+
+	        				"     DEFINE "+
+	        				"         PRICE_DOWN AS "+
+	        				"             (LAST(PRICE_DOWN.price, 1) IS NULL "
+	        				+ "AND PRICE_DOWN.price < START_ROW.price) OR "+
+	        				"                 PRICE_DOWN.price < LAST(PRICE_DOWN.price, 1), "+
+	        				"         PRICE_UP AS "+
+	        				"             PRICE_UP.price > LAST(PRICE_DOWN.price, 1) "+
+	        				"     ) MR "+
+	        				""
+	                );*/
 			
 			Table tb2 = tableEnv.sqlQuery(
 	        		" SELECT * "+
@@ -106,15 +127,14 @@ public class kafkaoutput {
 	        				"         LAST(A.price) AS topPrice, "+
 	        				"         B.price AS lastPric "+
 	        				"     ONE ROW PER MATCH "+
-	        				"     PATTERN (START_ROW A+ B)  "+ 
+	        				//"     AFTER MATCH SKIP TO LAST PRICE_UP "+
+	        				"     PATTERN (A+ B)  "+ 
 	        				"     WITHIN INTERVAL '1' minute  "+
 	        				"     DEFINE "+
 	        				"         A AS "+
-	        				"				A.price < 2, "+
-	        				///"             LAST(A.price, 1) IS NULL OR A.price > LAST(A.price, 1), "+
+	        				"             LAST(A.price, 1) IS NULL OR A.price > LAST(A.price, 1), "+
 	        				"		  B AS "+
-	        				////"             B.price < LAST(A.price) "+
-	        				"             B.price > 1 "+
+	        				"             B.price < LAST(A.price) "+
 	        				"     ) MR "+
 	        				""
 	                );
@@ -126,7 +146,7 @@ public class kafkaoutput {
 	            System.out.println("schema is:");
 	            tb2.printSchema();
 
-	        //appendStream.writeAsText("/usr/local/outputcep", WriteMode.OVERWRITE);
+	        appendStream.writeAsText("/usr/local/demo", WriteMode.OVERWRITE);
 
 			
 			

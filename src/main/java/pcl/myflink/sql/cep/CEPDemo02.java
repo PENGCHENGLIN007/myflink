@@ -1,10 +1,9 @@
-package pcl.myflink.sqlparser.cep;
+package pcl.myflink.sql.cep;
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.EnvironmentSettings;
-import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.Json;
 import org.apache.flink.table.descriptors.Kafka;
@@ -13,12 +12,10 @@ import org.apache.flink.table.descriptors.Schema;
 
 public class CEPDemo02 {
 	public static void main(String[] args) throws Exception {
-		StreamExecutionEnvironment env = StreamExecutionEnvironment
-				.getExecutionEnvironment();
-		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism(1);
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		EnvironmentSettings bsSettings = EnvironmentSettings.newInstance().useBlinkPlanner().inStreamingMode().build();
 		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, bsSettings);
+		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 		tableEnv.connect(
 				new Kafka()
 						.version("0.10")

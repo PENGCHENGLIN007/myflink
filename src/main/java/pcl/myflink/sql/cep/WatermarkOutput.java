@@ -1,4 +1,4 @@
-package pcl.myflink.sqlparser.cep;
+package pcl.myflink.sql.cep;
 
 import java.sql.Timestamp;
 
@@ -6,7 +6,7 @@ import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.types.Row;
 
-public class FirstTandW implements AssignerWithPeriodicWatermarks<Row> {
+public class WatermarkOutput implements AssignerWithPeriodicWatermarks<Row> {
 
     /**
 	 * 
@@ -28,7 +28,7 @@ public class FirstTandW implements AssignerWithPeriodicWatermarks<Row> {
 	public long extractTimestamp(Row element, long previousElementTimestamp) {
 		// TODO Auto-generated method stub
 		long timestamp= 0;
-		timestamp = ((Timestamp) element.getField(1)).getTime();
+		timestamp = ((Timestamp) element.getField(3)).getTime();
 		//timestamp = (Long)element.getField(1);
 		currentMaxTimestamp = timestamp;
 		return timestamp;

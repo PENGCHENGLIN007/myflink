@@ -1,4 +1,4 @@
-package pcl.myflink.sqlparser.cep;
+package pcl.myflink.sql.cep;
 
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -15,6 +15,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
@@ -23,19 +24,15 @@ import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ChinaUnicom {
 
-		protected static final Logger logger = LoggerFactory.getLogger(ChinaUnicom.class);
+public class ChinaUnicomFromKafkaSinkKafka {
+
+		protected static final Logger logger = LoggerFactory.getLogger(ChinaUnicomFromKafkaSinkKafka.class);
 
 		public static void main(String[] arg) throws Exception {
-			//String topic  ="pcl-ChinaUnicom-600w";
-			String topic  ="pcl-ChinaUnicom";
-			boolean isPrintStream = false;
-			if(arg.length==2){
+			String topic  ="pcl-ChinaUnicom-kafka";
+			if(arg.length==1){
 				topic = arg[0];
-				if(arg[1].equals("true")){
-					isPrintStream = true;
-				}
 				
 			}
 
@@ -46,13 +43,14 @@ public class ChinaUnicom {
 	        
 	        Properties properties = new Properties();
 			properties.setProperty("bootstrap.servers", "172.16.12.127:9092");
+			properties.setProperty("group.id", "pcl01");
 			FlinkKafkaConsumer010<String> consumer = new FlinkKafkaConsumer010<>(topic,
 					new SimpleStringSchema(Charset.forName("utf8")),properties);
-			consumer.setStartFromEarliest();//从最早记录开始
+			//consumer.setStartFromEarliest();//从最早记录开始
 
 			DataStream<String> stream = env.addSource(consumer);
-			if(isPrintStream)
-			stream.print();
+			//if(isPrintStream)
+			//stream.print();
 			@SuppressWarnings("rawtypes")
 			TypeInformation[] types ={Types.STRING,Types.INT,Types.INT,Types.LONG};
 			DataStream<Row> streamaa = stream.map(new MapFunction<String, Row>() {
@@ -92,7 +90,7 @@ public class ChinaUnicom {
 
 						private static final long serialVersionUID = 1L;
 
-						private final long maxOutOfOrderness = 100; // 3.5 seconds
+						private final long maxOutOfOrderness = 0; // 3.5 seconds
 
 	                    private long currentMaxTimestamp;
 
@@ -147,39 +145,21 @@ public class ChinaUnicom {
 		                );
 
 		           DataStream<Row> appendStream2 =tableEnv.toAppendStream(tb2, Row.class);
-		           @SuppressWarnings("rawtypes")
-					TypeInformation[] types2 ={Types.STRING,Types.SQL_TIMESTAMP,Types.SQL_TIMESTAMP,Types.STRING};
-					   DataStream<Row> appendStream3 = appendStream2.map(new MapFunction<Row, Row>() {
-							private static final long serialVersionUID = 1L;
+					DataStream<String> streamaa2 = appendStream2.map(new MapFunction<Row, String>() {
 
-							@Override
-							public Row map(Row value) throws Exception {
-								// TODO Auto-generated method stub
-								Row row = new Row(4);
-							for(int i=0 ;i<4;i++){
-								switch(i){
-									case 0:
-									{
-										row.setField(i,value.getField(i));
-										break;
-									}
-									case 1:
-									case 2:
-									{
-										row.setField(i,new Timestamp((long) value.getField(i)));
-										break;
-									}
-									case 3:{
-										row.setField(i,value.getField(i)+"毫秒");
-										break;
-									}
-								}
-							}
-								return row;
-							}
-					        }).returns(new RowTypeInfo(types2) );
-					   appendStream3.print().name("ChinaUnicom");
-					   
+						private static final long serialVersionUID = 1L;
+
+						@Override
+						public String map(Row value) throws Exception {
+							return value.toString();
+						}
+				        });
+		           
+					streamaa2.addSink(new FlinkKafkaProducer010<>(
+		   				"172.16.12.127:9092", 
+		   				"sink-ChinaUnicom", 
+		   				new SimpleStringSchema()))
+		   				.setParallelism(1);
 	        env.execute("ChinaUnicom");    
 
 	    }
