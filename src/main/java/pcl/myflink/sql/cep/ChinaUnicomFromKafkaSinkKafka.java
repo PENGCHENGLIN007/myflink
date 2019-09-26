@@ -18,7 +18,6 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 import org.slf4j.Logger;
@@ -46,7 +45,7 @@ public class ChinaUnicomFromKafkaSinkKafka {
 			properties.setProperty("group.id", "pcl01");
 			FlinkKafkaConsumer010<String> consumer = new FlinkKafkaConsumer010<>(topic,
 					new SimpleStringSchema(Charset.forName("utf8")),properties);
-			//consumer.setStartFromEarliest();//从最早记录开始
+			consumer.setStartFromEarliest();//从最早记录开始
 
 			DataStream<String> stream = env.addSource(consumer);
 			//if(isPrintStream)

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>pcl.myflink</groupId>
-  <artifactId>flink1.8</artifactId>
+  <groupId>com.pcl.myflink</groupId>
+  <artifactId>myflink</artifactId>
   <name>Flink Quickstart Job</name>
   <version>1.0-SNAPSHOT</version>
   <url>http://www.myorganization.org</url>
@@ -81,7 +81,7 @@
               </filters>
               <transformers>
                 <transformer>
-                  <mainClass>pcl.myflink.ChinaUnicomFromKafkaSinkKafka</mainClass>
+                  <mainClass>pcl.myflink.checkpoint.ExactlyOnceTest</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -109,34 +109,17 @@
       </dependencies>
     </profile>
   </profiles>
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots />
-      <id>apache.snapshots</id>
-      <name>Apache Development Snapshot Repository</name>
-      <url>https://repository.apache.org/content/repositories/snapshots/</url>
-    </repository>
-  </repositories>
   <dependencies>
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-java</artifactId>
-      <version>1.8.0</version>
+      <version>1.9.0</version>
       <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>commons-math3</artifactId>
-          <groupId>org.apache.commons</groupId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-streaming-java_2.11</artifactId>
-      <version>1.8.0</version>
+      <version>1.9.0</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -147,9 +130,17 @@
           <artifactId>flink-clients_2.11</artifactId>
           <groupId>org.apache.flink</groupId>
         </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-shaded-hadoop-2-uber</artifactId>
+      <version>2.7.5-8.0</version>
+      <scope>provided</scope>
+      <exclusions>
         <exclusion>
-          <artifactId>commons-math3</artifactId>
-          <groupId>org.apache.commons</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+          <groupId>org.slf4j</groupId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -157,7 +148,7 @@
   <properties>
     <java.version>1.8</java.version>
     <scala.binary.version>2.11</scala.binary.version>
-    <flink.version>1.8.0</flink.version>
+    <flink.version>1.9.0</flink.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.target>${java.version}</maven.compiler.target>
