@@ -22,6 +22,9 @@ public class ExactlyOnceTest {
 	public static void main(String[] args) throws Exception {
 		logger.info("-----start execute exactlyoncetest----");
 		String isRestart = args[0];
+		if(isRestart==null || "".equals(isRestart)){
+			isRestart = "0";
+		}
 		//init execution environment
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		//EnvironmentSettings bsSettings = EnvironmentSettings.newInstance()
@@ -37,8 +40,8 @@ public class ExactlyOnceTest {
 		}
 
         //StateBackend sb=new FsStateBackend("file:///E:/checkpoint");
-        StateBackend sb=new FsStateBackend("file:///home/pengchenglin/flinkresult/checkpoint");
-        env.setStateBackend(sb);
+        //StateBackend sb=new FsStateBackend("file:///home/pengchenglin/flinkresult/checkpoint");
+       // env.setStateBackend(sb);
         
 		env.enableCheckpointing(20000);
 		env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
@@ -57,8 +60,9 @@ public class ExactlyOnceTest {
 	                    out.collect(word);
 	                }
 			}
-		}).setParallelism(2);
-		mapds.writeAsText("/home/pengchenglin/flinkresult/ExactlyOnceTest", WriteMode.OVERWRITE);
+		});
+		mapds.print();
+		//mapds.writeAsText("/home/pengchenglin/flinkresult/ExactlyOnceTest", WriteMode.OVERWRITE);
 		env.execute("ExactlyOnceTest");
 		
 	}
